@@ -121,7 +121,6 @@ def writeDensities(ntheta,nphi, rmin, rmax, nr, nspec, mDisk, gamma, Rc, psi, H1
                 for i in range(nr):
                     rhos[s,i,j,k] = rhos[s,i,j,k]*epsilon*mass_norm
 
-    #print(msg)
     # Escritura del archivo dust_density.inp.
     with open('dust_density.inp','w+') as f: 
         f.write('1\n')                                      # Format number

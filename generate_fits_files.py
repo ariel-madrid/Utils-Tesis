@@ -3,6 +3,9 @@ import argparse
 import numpy as np
 import concurrent.futures
 import shutil
+import pandas as pd
+
+df = pd.read_csv("/mnt/sdb1/ariel/Desktop/Modelo Terminado Tesis/sky-param.csv")
 
 def parse_option():
     parser = argparse.ArgumentParser('Swin Transformer pre process', add_help=False)
@@ -11,6 +14,9 @@ def parse_option():
     args, unparsed = parser.parse_known_args()
 
     return args
+
+def getParameters(path, index):
+    print()
 
 def skyModel(dat_file):
     npix = 512
@@ -21,12 +27,17 @@ def skyModel(dat_file):
     incl = np.random.uniform(0, 80)
     sizeau = 420
 
-
     data_path = "/media/ariel/Nuevo vol/dats/dat-files"
     root_dir = os.getcwd()
     father_dir = os.path.dirname(root_dir)
+    try:
+        #Leer parametros desede el csv.
+        parameters_path = os.path.join(father_dir, "sky-param.csv")
+        indexDat = os.path.splitext(os.path.basename(dat_file))[0].split("-")[0]
+        print(parameters_path)
+        mdisk, rc, gamma, psi, H100 = getParameters(parameters_path, indexDat)
 
-    try: 
+        #Llamar a writeDensties.py
         new_dir = os.path.join(root_dir, os.path.splitext(os.path.basename(dat_file))[0])
         if not os.path.exists(new_dir):
             os.mkdir(new_dir)
@@ -68,6 +79,9 @@ def skyModel(dat_file):
         os.rename(dat_file, radmc3d_image_dat_name)
         
         #Ejecutar radmc3d image
+        
+
+
         os.system(f"radmc3d image npix {npix} lambda {lamb1} incl {incl} posang {posang} sizeau {sizeau} nostar > output.txt")
 
         #Ejecutar simobserve 
