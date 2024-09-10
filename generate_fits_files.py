@@ -5,7 +5,7 @@ import concurrent.futures
 import shutil
 import pandas as pd
 
-df = pd.read_csv("/mnt/sdb1/ariel/Desktop/Modelo Terminado Tesis/sky-param.csv")
+df = pd.read_csv("./sky-param.csv")
 
 def parse_option():
     parser = argparse.ArgumentParser('Swin Transformer pre process', add_help=False)
@@ -15,8 +15,11 @@ def parse_option():
 
     return args
 
-def getParameters(path, index):
-    print()
+def getParameters(index):
+    index = int(index)
+    df_filtrado = df.iloc[index]
+    
+    return df_filtrado["mDisk"], df_filtrado["Rc"], df_filtrado["gamma"], df_filtrado["psi"], df_filtrado["H100"]
 
 def skyModel(dat_file):
     npix = 512
@@ -27,17 +30,17 @@ def skyModel(dat_file):
     incl = np.random.uniform(0, 80)
     sizeau = 420
 
-    data_path = "/media/ariel/Nuevo vol/dats/dat-files"
+    data_path = "/media/yogui/Nuevo vol/dats/dat-files"
     root_dir = os.getcwd()
     father_dir = os.path.dirname(root_dir)
+
     try:
         #Leer parametros desede el csv.
-        parameters_path = os.path.join(father_dir, "sky-param.csv")
         indexDat = os.path.splitext(os.path.basename(dat_file))[0].split("-")[0]
-        print(parameters_path)
-        mdisk, rc, gamma, psi, H100 = getParameters(parameters_path, indexDat)
-
+        mdisk, rc, gamma, psi, H100 = getParameters(indexDat)
+        
         #Llamar a writeDensties.py
+
         new_dir = os.path.join(root_dir, os.path.splitext(os.path.basename(dat_file))[0])
         if not os.path.exists(new_dir):
             os.mkdir(new_dir)
@@ -72,15 +75,20 @@ def skyModel(dat_file):
         mix_inp_new_path = os.path.join(new_dir, "dustkappa_mix_2species.inp")
         shutil.copy(mix_inp_path, mix_inp_new_path)
 
+        densities_inp_path = os.path.join(father_dir, "writeDensities.py")
+        densities_inp_new_path = os.path.join(new_dir, "writeDensities.py")
+        shutil.copy(densities_inp_path, densities_inp_new_path)
+
         os.chdir(new_dir)
 
-        radmc3d_image_dat_name = "dust_temperatures.dat"
+        radmc3d_image_dat_name = "dust_temperature.dat"
 
         os.rename(dat_file, radmc3d_image_dat_name)
         
         #Ejecutar radmc3d image
         
-
+        #Construir densities.inp
+        os.system(f"python3 writeDensities.py --mdisk {mdisk} --rc {rc} --gamma {gamma} --psi {psi} --H100 {H100}")
 
         os.system(f"radmc3d image npix {npix} lambda {lamb1} incl {incl} posang {posang} sizeau {sizeau} nostar > output.txt")
 

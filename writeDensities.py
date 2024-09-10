@@ -10,14 +10,15 @@ ts  = 5.78e3                                        # Solar temperature       [K
 ls  = 3.8525e33                                     # Solar luminosity        [erg/s]
 rs  = 6.96e10                                       # Solar radius            [cm]
 pi = 3.14159265358979311
+epsilon=0.01
 
 def parse_option():
     parser = argparse.ArgumentParser('Write Densities', add_help=False)
-    parser.add_argument('--mdisk', type=str, required=True, metavar="FILE", help='Disk mass', )
-    parser.add_argument('--rc', type=str, required=True, metavar="FILE", help='Disk radio', )
-    parser.add_argument('--gamma', type=str, required=True, metavar="FILE", help='gamma', )
-    parser.add_argument('--psi', type=str, required=True, metavar="FILE", help='psi', )
-    parser.add_argument('--H100', type=str, required=True, metavar="FILE", help='H100', )
+    parser.add_argument('--mdisk', type=float, required=True, help='Disk mass', )
+    parser.add_argument('--rc', type=float, required=True, help='Disk radio', )
+    parser.add_argument('--gamma', type=float, required=True, help='gamma', )
+    parser.add_argument('--psi', type=float, required=True, help='psi', )
+    parser.add_argument('--H100', type=float, required=True, help='H100', )
 
     args, unparsed = parser.parse_known_args()
 
@@ -142,4 +143,4 @@ if __name__ == '__main__':
     
     args= parse_option()
 
-    writeGrid(ntheta,nphi, rmin, rmax, nr, nspec, args.Disk, args.gamma, args.Rc, args.psi, args.H100)
+    writeDensities(ntheta,nphi, rmin, rmax, nr, nspec, args.mdisk, args.gamma, args.rc, args.psi, args.H100)
