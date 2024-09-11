@@ -1,8 +1,0 @@
-nphot_therm = 4000000
-nphot_scat = 4000000
-scattering_mode_max = 0
-iranfreqmode = 1
-incl_dust = 1
-istar_sphere = 1
-tgas_eq_tdust = 1
-modified_random_walk = 1

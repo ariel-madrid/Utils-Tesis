@@ -5,7 +5,10 @@ import concurrent.futures
 import shutil
 import pandas as pd
 from casatasks import simobserve
-
+from casatasks import split, concat 
+from casatasks import tclean
+from radmc3dPy import image
+from casatools import image
 df = pd.read_csv("./sky-param.csv")
 
 def parse_option():
@@ -20,97 +23,76 @@ def getParameters(index):
     index = int(index)
     df_filtrado = df.iloc[index]
     
-    return df_filtrado["mDisk"], df_filtrado["Rc"], df_filtrado["gamma"], df_filtrado["psi"], df_filtrado["H100"]
+    return df_filtrado["mDisk"], df_filtrado["Rc"], df_filtrado["gamma"], df_filtrado["psi"], df_filtrado["H100"], df_filtrado["mstar"], df_filtrado["rstar"], df_filtrado["tstar"], df_filtrado["incl"], df_filtrado["posang"]
 
 def move_files(data_path, dat_file, new_dir, father_dir):
     old_path = os.path.join(data_path, os.path.basename(dat_file))
     new_path = os.path.join(new_dir, os.path.basename(dat_file))
     shutil.copy(old_path, new_path) 
 
-    #copy the .inp to new directory
-    inp_path = os.path.join(father_dir, "radmc3d.inp")
-    inp_new_path = os.path.join(new_dir, "radmc3d.inp")
-    shutil.copy(inp_path, inp_new_path)
-
-    wave_inp_path = os.path.join(father_dir, "wavelength_micron.inp")
-    wave_inp_new_path = os.path.join(new_dir, "wavelength_micron.inp")
-    shutil.copy(wave_inp_path, wave_inp_new_path)
-
-    grid_inp_path = os.path.join(father_dir, "amr_grid.inp")
-    grid_inp_new_path = os.path.join(new_dir, "amr_grid.inp")
-    shutil.copy(grid_inp_path, grid_inp_new_path)
-
-    opac_inp_path = os.path.join(father_dir, "dustopac.inp")
-    opac_inp_new_path = os.path.join(new_dir, "dustopac.inp")
-    shutil.copy(opac_inp_path, opac_inp_new_path)
-
-    silicate_inp_path = os.path.join(father_dir, "dustkappa_silicate.inp")
-    silicate_inp_new_path = os.path.join(new_dir, "dustkappa_silicate.inp")
-    shutil.copy(silicate_inp_path, silicate_inp_new_path)
-
-    mix_inp_path = os.path.join(father_dir, "dustkappa_mix_2species.inp")
-    mix_inp_new_path = os.path.join(new_dir, "dustkappa_mix_2species.inp")
-    shutil.copy(mix_inp_path, mix_inp_new_path)
-
-    densities_inp_path = os.path.join(father_dir, "writeDensities.py")
-    densities_inp_new_path = os.path.join(new_dir, "writeDensities.py")
-    shutil.copy(densities_inp_path, densities_inp_new_path)
-
     os.chdir(new_dir)
 
-def run_simobserve_banda4():
+def run_simobserve(name, incenter,chanwidth,antenaCfg):
     #Utilizar un archivo de configuracion especifico para esta banda
     #Frecuencia Ventana 1
+    #Que indirection debo usar?
     simobserve(
-    project    = str(indexDat) + "- simobs",
+    project    = name,
     skymodel   = 'image.fits',
     indirection = 'J2000 16h26m10.32 -24d20m54.61',
-    incenter   = '232.6GHz',
-    inwidth    = '1.875GHz',
+    incenter   = f'{incenter}GHz',
+    inwidth    = f'{chanwidth}GHz',
     obsmode    = 'int',
     hourangle  = '0h14m',
-    totaltime  = '52s',
-    integration = '13s',
-    antennalist = 'alma.cycle4.6.cfg',
+    totaltime  = '24s',
+    integration = '2s',
+    antennalist = antenaCfg,
     thermalnoise = 'tsys-atm',
     user_pwv   = 1.5,
     mapsize    = ["''","''"],
-    graphics   = 'both',
+    graphics   = 'none',
     verbose    = False,
     overwrite  = True
     )
 
+def run_radmc(new_dir, band_dir, father_dir, indexDat, mstar, tstar, rstar, gamma,rc, H100, mdisk, psi, lamb2, incl, posang):
+    old_path = os.path.join(new_dir, "dust_temperature.dat")
+    new_path = os.path.join(band_dir, "dust_temperature.dat")
+    shutil.copy(old_path, new_path) 
+    
+    silicate_path = os.path.join(father_dir, "dustkappa_silicate.inp")
+    new_silicate_path_path = os.path.join(band_dir, "dustkappa_silicate.inp")
+    shutil.copy(silicate_path, new_silicate_path_path) 
 
-def run_simobserve_banda8():
-    #Utilizar un archivo de configuracion especifico para esta banda
-    #Frecuencia Ventana 1
-    simobserve(
-    project    = str(indexDat) + "- simobs",
-    skymodel   = 'image.fits',
-    indirection = 'J2000 16h26m10.32 -24d20m54.61',
-    incenter   = '232.6GHz',
-    inwidth    = '1.875GHz',
-    obsmode    = 'int',
-    hourangle  = '0h14m',
-    totaltime  = '52s',
-    integration = '13s',
-    antennalist = 'alma.cycle4.6.cfg',
-    thermalnoise = 'tsys-atm',
-    user_pwv   = 1.5,
-    mapsize    = ["''","''"],
-    graphics   = 'both',
-    verbose    = False,
-    overwrite  = True
-    )
+    mix_silicate_path = os.path.join(father_dir, "dustkappa_mix_2species.inp")
+    new_mix_silicate_path_path = os.path.join(band_dir, "dustkappa_mix_2species.inp")
+    shutil.copy(mix_silicate_path, new_mix_silicate_path_path) 
 
+    try:
+        result = subprocess.run(
+            ['python3', f'{father_dir}/setup.py', '--mode', '1', '--nthread', '4', '--name', str(indexDat),
+            '--rstar', f'{rstar:.5f}', '--mstar', f'{mstar:.5f}', '--tstar', str(int(tstar)),
+            '--mDisk', f'{mdisk:.5f}', '--gamma', f'{gamma:.5f}', '--Rc', f'{rc:.5f}', '--H100', f'{H100:.5f}',
+            '--psi', f'{psi:.5f}', '--lamb', f'{lamb2:.5f}', '--incl', str(int(incl)), '--posang', str(int(posang)),
+            '--nphot', '4000000', '--npix', '512'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        if result.returncode != 0:
+            print(f'Error ejecutando el comando: {result.stderr}')
+        else:
+            print(f'Comando ejecutado correctamente: {result.stdout}')
+    except Exception as e:
+        print(f'Error al ejecutar el comando: {e}')
+
+import subprocess
 def skyModel(dat_file):
-    npix = 512
     lamb1 = 740
     lamb2 = 2067
 
     posang = np.random.uniform(0, 180)
     incl = np.random.uniform(0, 80)
-    sizeau = 420
 
     data_path = "/media/yogui/Nuevo vol/dats/dat-files"
     root_dir = os.getcwd()
@@ -119,7 +101,7 @@ def skyModel(dat_file):
     try:
         #Leer parametros desede el csv.
         indexDat = os.path.splitext(os.path.basename(dat_file))[0].split("-")[0]
-        mdisk, rc, gamma, psi, H100 = getParameters(indexDat)
+        mdisk, rc, gamma, psi, H100, mstar, rstar, tstar, incl, posang = getParameters(indexDat)
         
         #Llamar a writeDensties.py
 
@@ -132,31 +114,93 @@ def skyModel(dat_file):
         radmc3d_image_dat_name = "dust_temperature.dat"
 
         os.rename(dat_file, radmc3d_image_dat_name)
-        
-        #Construir densities.inp
-        os.system(f"python3 writeDensities.py --mdisk {mdisk} --rc {rc} --gamma {gamma} --psi {psi} --H100 {H100}")
-
-        #Al correr radmc3d image es cuando debemos discriminar por longitud de onda
-
-        #image para banda 4
-        os.system(f"radmc3d image npix {npix} lambda {lamb2} incl {incl} posang {posang} sizeau {sizeau} nostar > output.txt")
-        #mover salida de image a carpeta de banda 4 para el disco para luego ejecutar simobserve
 
         actual_dir = os.getcwd()
         band4_dir = os.path.join(actual_dir, "band4")
         if not os.path.exists(band4_dir):
             os.mkdir(band4_dir)
 
+        os.chdir(band4_dir)
+
+        run_radmc(new_dir, band4_dir,father_dir, indexDat, mstar, tstar, rstar, gamma,rc, H100, mdisk, psi, lamb2, incl, posang)
+        #Correr simobserve para 4 frecuencias y despues concatenar
+        #138000 Mhz 138 Ghz
+        #140000 Mhz 140 Ghz
+        #150000 Mhz 150 Ghz
+        #152000 Mhz 152 Ghz
+        antena4 = os.path.join(father_dir, "antennaB4.cfg")
+        antena8 = os.path.join(father_dir, "antennaB8.cfg")
         
+        incenter_per_spw = [138,140,150,152]
+        tolerance = '15000MHz'
+        
+        spw_b4 = []
+        #Se corre para la banda 4
+        for incenter in incenter_per_spw:
+            name = str(incenter)+"-B4"
+            run_simobserve(name=name, incenter=incenter, chanwidth=0.015625, antenaCfg=antena4)
+            s = f"{incenter}-B4/{incenter}-B4.antennaB4.ms"
+            sf = f"{incenter}-B4.antennaB4.ms"
+            shutil.move(os.path.join(band4_dir, s), band4_dir)
+            shutil.rmtree(f"{incenter}-B4")
+            spw_b4.append(sf)
+
+        #Concatenar las ventanas
+        output_ms_b4 = f"{indexDat}-B4-concat"
+        
+        concat(vis=spw_b4, concatvis=output_ms_b4, freqtol=tolerance)
+        import time
+        t0 = time.time()
+        #Correr tclean para el disco concatenado
+        tclean(vis=output_ms_b4, cell="0.028arcsec", imagename=output_ms_b4,
+                imsize=[512,512], threshold='0mJy', weighting='briggs',
+                robust=0, niter=0, interactive=False, gridder='standard')
+        tf = time.time()
+
+        print(f"Tiempo tclean {tf-t0}")
+        ia = image()
+        ia.open(f"{output_ms_b4}.image")
+        ia.tofits(outfile=f"{indexDat}-B4.fits", overwrite=True)
+        ia.close()
+
+        #Volver a la ruta anterior
+        os.chdir(actual_dir)
 
         #image para banda 8
-        os.system(f"radmc3d image npix {npix} lambda {lamb1} incl {incl} posang {posang} sizeau {sizeau} nostar > output.txt")
+        band8_dir = os.path.join(actual_dir, "band8")
+        if not os.path.exists(band8_dir):
+            os.mkdir(band8_dir)
 
-        #Ejecutar simobserve para cada banda
+        os.chdir(band8_dir)
+        
+        run_radmc(new_dir, band8_dir, father_dir, indexDat, mstar, tstar, rstar, gamma,rc, H100, mdisk, psi, lamb1, incl, posang)
 
+        spw_b8 = []
+        for incenter in incenter_per_spw:
+            name = str(incenter)+"-B8"
+            run_simobserve(name=name, incenter=incenter, chanwidth=0.015625, antenaCfg=antena8)
+            s = f"{incenter}-B8/{incenter}-B8.antennaB8.ms"
+            sf = f"{incenter}-B8.antennaB8.ms"
+            shutil.move(os.path.join(band8_dir, s), band8_dir)
+            shutil.rmtree(f"{incenter}-B8")
+            spw_b8.append(sf)
 
-        #Ejecutar tclean
+        #Concatenar las ventanas
+        output_ms_b8 = f"{indexDat}-B8-concat"
+        
+        concat(vis=spw_b8, concatvis=output_ms_b8, freqtol=tolerance)
 
+        #Correr tclean para el disco concatenado
+        tclean(vis=output_ms_b8, cell="0.028arcsec", imagename=output_ms_b8,
+                imsize=[512,512], threshold='0mJy', weighting='briggs',
+                robust=0, niter=0, interactive=False, gridder='standard')
+
+        ia = image()
+        ia.open(f"{output_ms_b8}.image")
+        ia.tofits(outfile=f"{indexDat}-B8.fits", overwrite=True)
+        ia.close()
+
+        print("Exito")
     except Exception as e:
         return None 
     finally:
@@ -165,7 +209,7 @@ def skyModel(dat_file):
     return 0
 def procesar_archivos_por_lotes(archivos, batch_size, max_workers):
     total_procesados = 0
-    for i in range(0, 100, batch_size):
+    for i in range(1000, 1005, batch_size):
         batch = archivos[i:i+batch_size]
         with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
             resultados = list(executor.map(skyModel, batch))
@@ -181,8 +225,8 @@ def main(args):
     dat_files = [f for f in os.listdir(data_path)]
     
     #Paso 2 - 
-    batch_size = 30  # Tamaño del lote
-    max_workers = 8    # Ajusta según el número de núcleos de tu CPU
+    batch_size = 10 # Tamaño del lote
+    max_workers = 4    # Ajusta según el número de núcleos de tu CPU
     # Procesar los archivos por lotes
 
     root = os.getcwd()
