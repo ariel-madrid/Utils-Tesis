@@ -32,14 +32,12 @@ def move_files(data_path, dat_file, new_dir, father_dir):
 
     os.chdir(new_dir)
 
-def run_simobserve(name, incenter,chanwidth,antenaCfg):
-    #Utilizar un archivo de configuracion especifico para esta banda
-    #Frecuencia Ventana 1
-    #Que indirection debo usar?
+def run_simobserve(name, incenter,chanwidth,antenaCfg, degree, minutes, seconds):
+    #Utilizar un archivo de configuracion de antenas para cada banda bgr      
     simobserve(
     project    = name,
     skymodel   = 'image.fits',
-    indirection = 'J2000 16h26m10.32 -24d20m54.61',
+    indirection = f'J2000 16h26m10.32 -{degree}d{minutes}m{seconds}',
     incenter   = f'{incenter}GHz',
     inwidth    = f'{chanwidth}GHz',
     obsmode    = 'int',
@@ -87,12 +85,19 @@ def run_radmc(new_dir, band_dir, father_dir, indexDat, mstar, tstar, rstar, gamm
         print(f'Error al ejecutar el comando: {e}')
 
 import subprocess
+import random
 def skyModel(dat_file):
-    lamb1 = 740
-    lamb2 = 2067
+    lamb1 = 740.228
+    lamb2 = 2067.534
+    
+    #seed = int(time.time()) % 2**32
+    #np.random.seed(seed)
 
-    posang = np.random.uniform(0, 180)
-    incl = np.random.uniform(0, 80)
+    degree = random.randint(-30, -20)
+    minutes = random.randint(0, 60)
+    seconds = round(random.uniform(0, 60),2)
+
+    print(f"Archivo {dat_file} - Degree {degree} - Minutes {minutes} - Seconds {seconds}")
 
     data_path = "/media/yogui/Nuevo vol/dats/dat-files"
     root_dir = os.getcwd()
@@ -138,7 +143,7 @@ def skyModel(dat_file):
         #Se corre para la banda 4
         for incenter in incenter_per_spw:
             name = str(incenter)+"-B4"
-            run_simobserve(name=name, incenter=incenter, chanwidth=0.015625, antenaCfg=antena4)
+            run_simobserve(name=name, incenter=incenter, chanwidth=0.015625, antenaCfg=antena4, degree=degree, minutes=minutes, seconds=seconds)
             s = f"{incenter}-B4/{incenter}-B4.antennaB4.ms"
             sf = f"{incenter}-B4.antennaB4.ms"
             shutil.move(os.path.join(band4_dir, s), band4_dir)
@@ -178,7 +183,7 @@ def skyModel(dat_file):
         spw_b8 = []
         for incenter in incenter_per_spw:
             name = str(incenter)+"-B8"
-            run_simobserve(name=name, incenter=incenter, chanwidth=0.015625, antenaCfg=antena8)
+            run_simobserve(name=name, incenter=incenter, chanwidth=0.015625, antenaCfg=antena8, degree=degree, minutes=minutes, seconds=seconds)
             s = f"{incenter}-B8/{incenter}-B8.antennaB8.ms"
             sf = f"{incenter}-B8.antennaB8.ms"
             shutil.move(os.path.join(band8_dir, s), band8_dir)
