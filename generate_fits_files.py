@@ -9,11 +9,12 @@ from casatasks import split, concat
 from casatasks import tclean
 from radmc3dPy import image
 from casatools import image
+
 df = pd.read_csv("./sky-param.csv")
 
 def parse_option():
     parser = argparse.ArgumentParser('Swin Transformer pre process', add_help=False)
-    parser.add_argument('--dats-path', type=str, required=True, metavar="FILE", help='path to dats files', )
+    parser.add_argument('dat_file', type=str, help='path to dat file', )
 
     args, unparsed = parser.parse_known_args()
 
@@ -84,33 +85,48 @@ def run_radmc(new_dir, band_dir, father_dir, indexDat, mstar, tstar, rstar, gamm
     except Exception as e:
         print(f'Error al ejecutar el comando: {e}')
 
+def delete_trash():
+    os.system("rm -r *.ms")
+    os.system("rm -r image.fits")
+    os.system("rm *.inp")
+    os.system("rm -r *.image")
+    os.system("rm -r *.model")
+    os.system("rm -r *.pb")
+    os.system("rm -r *.psf")
+    os.system("rm -r *.residual")
+    os.system("rm -r *.sumwt")
+    os.system("rm -r *.out")
+    os.system("rm -r *.txt")
+    os.system("rm -r *.dat")
+
 import subprocess
 import random
 def skyModel(dat_file):
     lamb1 = 740.228
     lamb2 = 2067.534
-    
-    #seed = int(time.time()) % 2**32
-    #np.random.seed(seed)
 
     degree = random.randint(-30, -20)
     minutes = random.randint(0, 60)
     seconds = round(random.uniform(0, 60),2)
 
-    print(f"Archivo {dat_file} - Degree {degree} - Minutes {minutes} - Seconds {seconds}")
+    #print(f"Archivo {dat_file} - Degree {degree} - Minutes {minutes} - Seconds {seconds}")
 
-    data_path = "/media/yogui/Nuevo vol/dats/dat-files"
     root_dir = os.getcwd()
+    
     father_dir = os.path.dirname(root_dir)
+
+    data_path = os.path.dirname(dat_file)
 
     try:
         #Leer parametros desede el csv.
-        indexDat = os.path.splitext(os.path.basename(dat_file))[0].split("-")[0]
+        file_name = os.path.basename(dat_file)
+        file_name_without_extension = file_name.split(".")[0]
+        indexDat = file_name.split('-')[0]
+
         mdisk, rc, gamma, psi, H100, mstar, rstar, tstar, incl, posang = getParameters(indexDat)
-        
         #Llamar a writeDensties.py
 
-        new_dir = os.path.join(root_dir, os.path.splitext(os.path.basename(dat_file))[0])
+        new_dir = os.path.join(root_dir, file_name_without_extension)
         if not os.path.exists(new_dir):
             os.mkdir(new_dir)
         
@@ -118,7 +134,7 @@ def skyModel(dat_file):
 
         radmc3d_image_dat_name = "dust_temperature.dat"
 
-        os.rename(dat_file, radmc3d_image_dat_name)
+        os.rename(file_name, radmc3d_image_dat_name)
 
         actual_dir = os.getcwd()
         band4_dir = os.path.join(actual_dir, "band4")
@@ -168,6 +184,8 @@ def skyModel(dat_file):
         ia.tofits(outfile=f"{indexDat}-B4.fits", overwrite=True)
         ia.close()
 
+        #Remover archivos basura
+        delete_trash()
         #Volver a la ruta anterior
         os.chdir(actual_dir)
 
@@ -205,6 +223,7 @@ def skyModel(dat_file):
         ia.tofits(outfile=f"{indexDat}-B8.fits", overwrite=True)
         ia.close()
 
+        delete_trash()
         print("Exito")
     except Exception as e:
         return None 
@@ -212,35 +231,18 @@ def skyModel(dat_file):
         os.chdir(root_dir)
 
     return 0
-def procesar_archivos_por_lotes(archivos, batch_size, max_workers):
-    total_procesados = 0
-    for i in range(1000, 1005, batch_size):
-        batch = archivos[i:i+batch_size]
-        with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-            resultados = list(executor.map(skyModel, batch))
-        
-        procesados_en_este_lote = sum(1 for r in resultados if r is not None)  # Contar solo si el procesamiento fue exitoso
-        total_procesados += procesados_en_este_lote
 
-    print(f"Total de archivos procesados: {total_procesados}")
-    
 def main(args):
-    #Paso 1 - Leer .dat files
-    data_path = args.dats_path
-    dat_files = [f for f in os.listdir(data_path)]
     
-    #Paso 2 - 
-    batch_size = 10 # Tamaño del lote
-    max_workers = 4    # Ajusta según el número de núcleos de tu CPU
-    # Procesar los archivos por lotes
-
     root = os.getcwd()
     files = "data"
     if not os.path.exists(files):
         os.mkdir(files)
     os.chdir(files)
-    procesar_archivos_por_lotes(dat_files, batch_size, max_workers)
+    skyModel(args.dat_file)
     os.chdir(root)
+
+    os.system("rm *.log")
 
 if __name__ == '__main__':
     args= parse_option()
