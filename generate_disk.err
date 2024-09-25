@@ -1,0 +1,9 @@
+2024-09-25 19:27:35	WARN	noise::CTPatchedInterp::interpolate	In caltable 138-B4.antennaB4.noisy.T.cal_sim_temp (Tf Jones):
+2024-09-25 19:27:35	WARN	noise::CTPatchedInterp::interpolate+	 Insufficient solution channel sampling (nchan=1) for frequency-dependent LINEAR interpolation 
+2024-09-25 19:27:35	WARN	noise::CTPatchedInterp::interpolate+	 of calibration for MS spw=0; using NEAREST instead.
+2024-09-25 19:27:36	WARN	noise::CTPatchedInterp::interpolate	In caltable 138-B4.antennaB4.noisy.T.cal_sim_temp (Tf Jones):
+2024-09-25 19:27:36	WARN	noise::CTPatchedInterp::interpolate+	 Insufficient solution channel sampling (nchan=1) for frequency-dependent LINEAR interpolation 
+2024-09-25 19:27:36	WARN	noise::CTPatchedInterp::interpolate+	 of calibration for MS spw=0; using NEAREST instead.
+2024-09-25 19:27:36	WARN	noise::CTPatchedInterp::interpolate	In caltable 138-B4.antennaB4.noisy.T.cal_sim_temp (Tf Jones):
+2024-09-25 19:27:36	WARN	noise::CTPatchedInterp::interpolate+	 Insufficient solution channel sampling (nchan=1) for frequency-dependent LINEAR interpolation 
+2024-09-25 19:27:36	WARN	noise::CTPatchedInterp::interpolate+	 of calibration for MS spw=0; using NEAREST instead.

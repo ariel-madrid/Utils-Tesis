@@ -10,7 +10,7 @@ from casatasks import tclean
 from radmc3dPy import image
 from casatools import image
 
-df = pd.read_csv("./sky-param.csv")
+df = pd.read_csv("/home/XI/aargomedo/Data-Gen/Utils-Tesis/sky-param.csv")
 
 def parse_option():
     parser = argparse.ArgumentParser('Swin Transformer pre process', add_help=False)
@@ -57,19 +57,19 @@ def run_simobserve(name, incenter,chanwidth,antenaCfg, degree, minutes, seconds)
 def run_radmc(new_dir, band_dir, father_dir, indexDat, mstar, tstar, rstar, gamma,rc, H100, mdisk, psi, lamb2, incl, posang):
     old_path = os.path.join(new_dir, "dust_temperature.dat")
     new_path = os.path.join(band_dir, "dust_temperature.dat")
-    shutil.copy(old_path, new_path) 
-    
-    silicate_path = os.path.join(father_dir, "dustkappa_silicate.inp")
+    shutil.copy(old_path, new_path)
+
+    silicate_path = os.path.join("/home/XI/aargomedo/Data-Gen/Utils-Tesis/", "dustkappa_silicate.inp")
     new_silicate_path_path = os.path.join(band_dir, "dustkappa_silicate.inp")
     shutil.copy(silicate_path, new_silicate_path_path) 
 
-    mix_silicate_path = os.path.join(father_dir, "dustkappa_mix_2species.inp")
+    mix_silicate_path = os.path.join("/home/XI/aargomedo/Data-Gen/Utils-Tesis/", "dustkappa_mix_2species.inp")
     new_mix_silicate_path_path = os.path.join(band_dir, "dustkappa_mix_2species.inp")
     shutil.copy(mix_silicate_path, new_mix_silicate_path_path) 
 
     try:
         result = subprocess.run(
-            ['python3', f'{father_dir}/setup.py', '--mode', '1', '--nthread', '4', '--name', str(indexDat),
+            ['python3', f'/home/XI/aargomedo/Data-Gen/Utils-Tesis/setup.py', '--mode', '1', '--nthread', '4', '--name', str(indexDat),
             '--rstar', f'{rstar:.5f}', '--mstar', f'{mstar:.5f}', '--tstar', str(int(tstar)),
             '--mDisk', f'{mdisk:.5f}', '--gamma', f'{gamma:.5f}', '--Rc', f'{rc:.5f}', '--H100', f'{H100:.5f}',
             '--psi', f'{psi:.5f}', '--lamb', f'{lamb2:.5f}', '--incl', str(int(incl)), '--posang', str(int(posang)),
@@ -113,10 +113,12 @@ def skyModel(dat_file):
 
     root_dir = os.getcwd()
     
-    father_dir = os.path.dirname(root_dir)
+    father_dir = "/home/XI/aargomedo/Data-Gen/Utils-Tesis/"
 
     data_path = os.path.dirname(dat_file)
 
+    #print(root_dir)
+    #print(father_dir)
     try:
         #Leer parametros desede el csv.
         file_name = os.path.basename(dat_file)
@@ -125,11 +127,11 @@ def skyModel(dat_file):
 
         mdisk, rc, gamma, psi, H100, mstar, rstar, tstar, incl, posang = getParameters(indexDat)
         #Llamar a writeDensties.py
-
+        #print(mdisk, rc, gamma, psi)
         new_dir = os.path.join(root_dir, file_name_without_extension)
         if not os.path.exists(new_dir):
             os.mkdir(new_dir)
-        
+        print(new_dir)
         move_files(data_path, dat_file, new_dir, father_dir)
 
         radmc3d_image_dat_name = "dust_temperature.dat"
@@ -142,9 +144,10 @@ def skyModel(dat_file):
             os.mkdir(band4_dir)
 
         os.chdir(band4_dir)
-
+		
         run_radmc(new_dir, band4_dir,father_dir, indexDat, mstar, tstar, rstar, gamma,rc, H100, mdisk, psi, lamb2, incl, posang)
-        #Correr simobserve para 4 frecuencias y despues concatenar
+        #print("Aqui")
+	#Correr simobserve para 4 frecuencias y despues concatenar
         #138000 Mhz 138 Ghz
         #140000 Mhz 140 Ghz
         #150000 Mhz 150 Ghz
@@ -242,7 +245,7 @@ def main(args):
     skyModel(args.dat_file)
     os.chdir(root)
 
-    os.system("rm *.log")
+    #os.system("rm *.log")
 
 if __name__ == '__main__':
     args= parse_option()
